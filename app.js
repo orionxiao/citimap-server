@@ -3,22 +3,26 @@ const fetch = require("node-fetch");
 const cors = require("cors");
 const bodyParser = require('body-parser')
 
+const PORT = process.env.PORT || 8081;
+
 let app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get("/api/test/:lat/:long", async (req, res) => {
+app.get("/api/stations/:lat/:long/:range", async (req, res) => {
+    console.log(`GET request received, lat: ${req.params.lat} long: ${req.params.long} range: ${req.params.range}, fetching data`);
     let results = await fetch(
         "https://feeds.citibikenyc.com/stations/stations.json"
     );
     let data = await results.json();
+    console.log("Data received, processing data");
     let allStations = cleanData(data);
-    let payload = getNearbyStations(allStations, req.params.lat, req.params.long);
-    console.log(payload);
+    let payload = getNearbyStations(allStations, req.params.lat, req.params.long, req.params.range);
+    console.log("sending data");
     res.send(payload);
 });
 
-app.listen(3001, () => console.log("listening on port 3001"));
+app.listen(PORT, () => console.log(`Server is listening on port ${PORT}`));
 
 const cleanData = data => {
     let stationList = data.stationBeanList.map(s => ({
@@ -35,10 +39,10 @@ const cleanData = data => {
     return stationList;
 };
 
-const getNearbyStations = (stations, lat, long) => {
+const getNearbyStations = (stations, lat, long, range) => {
     // console.log(stations);
     console.log(lat, long);
-    let results = stations.filter(s => calculateDistance(lat, long, s.coords.lat, s.coords.long, "M") <= 1.5);
+    let results = stations.filter(s => calculateDistance(lat, long, s.coords.lat, s.coords.long, "M") <= range);
     return results;
 }
 
